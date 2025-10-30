@@ -1,0 +1,30 @@
+{
+  "mcpServers": {
+    "salesforce-mce": {
+      "command": "C:/Program Files/nodejs/node.exe",
+      "args": [
+        "C:/repos/salesforce-mce-mcp-server-api/src/mcp-server.js"
+      ],
+      "env": {
+        "MCE_SUBDOMAIN": "mcf242gf2c8529jvprw8jvxk1r28",
+        "MCE_CLIENT_ID": "1lqn9vs7h85wchfody8yj07y",
+        "MCE_CLIENT_SECRET": "ZmcwidLZ1ZMDGD5l7nCEKaU7",
+        "MCE_DEFAULT_MID": "523014638"
+      }
+    },
+    "salesforce-cms": {
+      "command": "C:/Program Files/nodejs/node.exe",
+      "args": [
+        "C:/repos/salesforce-cms-mcp-server/src/index.js"
+      ],
+      "env": {
+        "SF_INSTANCE_URL": "https://storm-6d85ffc578e682.lightning.force.com",
+        "SF_CLIENT_ID": "3MVG9aNlkJwuH9vNrZiIhNsS6a6qQMDqMb1oC_f2xlqeWfwZdjaujMTQ_BfFm9AZ4utV8A9xOTa_jkxYqljvu",
+        "SF_USERNAME": "storm.6d85ffc578e682@salesforce.com",
+        "SF_JWT_PRIVATE_KEY_PATH": "C:/repos/mce-to-cms-migration/certs/server.key",
+        "SF_WORKSPACE_NAME": "Content Workspace for Marketing Cloud",
+        "SF_API_VERSION": "v61.0"
+      }
+    }
+  }
+}
