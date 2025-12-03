@@ -1,206 +1,147 @@
 # Salesforce CMS MCP Server
 
-MCP server that provides Claude Desktop with direct access to Salesforce CMS operations.
+An MCP (Model Context Protocol) server that enables LLMs like Claude to interact directly with Salesforce Enhanced CMS workspaces.
 
-## 🚀 Features
+## Features
 
-- **List Content**: Browse content in your CMS workspace
-- **Get Content**: Retrieve detailed content structure
-- **Create Content**: Create new CMS content
-- **Update Content**: Modify existing content
-- **Get Types**: List available content types
-- **Publish**: Publish content to make it live
-- **Delete**: Remove content from CMS
+- **List Content** - Browse all content items in your workspace (including drafts)
+- **Get Content** - Retrieve detailed content by ID or ContentKey
+- **Create Content** - Create new emails, images, and documents
+- **Update Content** - Modify existing content
+- **Publish Content** - Make content live
+- **Delete Content** - Remove content from the workspace
+- **API Guide** - Built-in documentation for LLMs
 
-## 📦 Setup
+## Installation
 
-### 1. Install Dependencies
+1. Clone this repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Copy `.env.example` to `.env` and configure your Salesforce credentials:
+   ```
+   SF_INSTANCE_URL=https://your-instance.salesforce.com
+   SF_CLIENT_ID=your_connected_app_client_id
+   SF_USERNAME=your_salesforce_username
+   SF_JWT_PRIVATE_KEY_PATH=/path/to/your/private-key.pem
+   SF_WORKSPACE_NAME=Your CMS Workspace Name
+   SF_API_VERSION=v61.0
+   ```
 
-```bash
-cd C:\repos\salesforce-cms-mcp-server
-npm install
-```
+4. Add to your Claude Desktop config (`claude_desktop_config.json`):
+   ```json
+   {
+     "mcpServers": {
+       "salesforce-cms": {
+         "command": "node",
+         "args": ["C:/path/to/salesforce-cms-mcp-server/src/index.js"]
+       }
+     }
+   }
+   ```
 
-### 2. Configure Credentials
+## Available Tools
 
-```bash
-# Copy template
-copy .env.example .env
+| Tool | Description |
+|------|-------------|
+| `server_version` | Check server version and verify restarts |
+| `get_api_guide` | Get documentation on API usage (topics: email, content-types, errors, all) |
+| `list_cms_content` | List content items in the workspace |
+| `get_cms_content` | Get detailed content by ID or ContentKey |
+| `get_cms_types` | List available content types |
+| `create_cms_content` | Create new content |
+| `update_cms_content` | Update existing content |
+| `publish_cms_content` | Publish content |
+| `delete_cms_content` | Delete content |
 
-# Edit .env with your Salesforce credentials
-notepad .env
-```
+## Creating Email Content
 
-Use the same credentials from your `mce-to-cms-migration` project:
-- `SF_INSTANCE_URL`: Your Salesforce org URL
-- `SF_CLIENT_ID`: Consumer Key from Connected App
-- `SF_USERNAME`: Your Salesforce username
-- `SF_JWT_PRIVATE_KEY_PATH`: Path to your private key (can reuse from migration project)
-- `SF_WORKSPACE_NAME`: Your CMS workspace name
+Marketing Cloud emails use a block-based structure. **Always call `get_api_guide` with topic="email" first** to get the correct structure.
 
-### 3. Add to Claude Desktop
+### Key Requirements:
 
-Edit your Claude Desktop config file:
+1. **Block IDs must be valid UUIDs**: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+2. **Required hierarchy**: `sfdc_cms/rootContentBlock` → `lightning/section` → `lightning/column` → components
+3. **Required fields**: `subjectLine`, `sfdc_cms:title`, `sfdc_cms:block`
 
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-**Mac**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+### Example:
 
-Add this server:
-
-```json
-{
-  "mcpServers": {
-    "salesforce-cms": {
-      "command": "node",
-      "args": ["C:\\repos\\salesforce-cms-mcp-server\\src\\index.js"],
-      "env": {
-        "SF_INSTANCE_URL": "https://storm-6d85ffc578e682.lightning.force.com",
-        "SF_CLIENT_ID": "your_consumer_key_here",
-        "SF_USERNAME": "storm.6d85ffc578e682@salesforce.com",
-        "SF_JWT_PRIVATE_KEY_PATH": "C:\\repos\\mce-to-cms-migration\\certs\\server.key",
-        "SF_WORKSPACE_NAME": "Content Workspace for Marketing Cloud",
-        "SF_API_VERSION": "v61.0"
-      }
+```javascript
+create_cms_content({
+  type: "sfdc_cms__email",
+  title: "My Email",
+  contentKey: "MY_EMAIL_KEY",
+  urlName: "my-email",
+  contentBody: {
+    subjectLine: "Hello World",
+    "sfdc_cms:title": "My Email",
+    "sfdc_cms:block": {
+      id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      type: "block",
+      definition: "sfdc_cms/rootContentBlock",
+      children: [/* section → column → components */]
     }
   }
-}
+})
 ```
 
-### 4. Restart Claude Desktop
+## API Learnings
 
-Close and reopen Claude Desktop. The CMS tools will now be available!
+### Critical Notes:
 
-## 🛠️ Available Tools
+| Issue | Solution |
+|-------|----------|
+| `GET /connect/cms/contents` returns 405 | This endpoint only accepts POST. Use `/connect/cms/items/search` for listing |
+| "uuid is invalid" error | All block IDs must be valid UUIDs |
+| "MISSING_ARGUMENT" error | Use `contentSpaceOrFolderIds` parameter, not `library` |
+| JSON parse errors in Claude | Never use `console.log` in MCP servers - it corrupts stdio |
 
-### `list_cms_content`
-List content items in the workspace.
+### Correct Endpoints:
 
-**Parameters:**
-- `limit` (number, optional): Max items to return (default: 10)
+| Operation | Endpoint | Method |
+|-----------|----------|--------|
+| List content | `/connect/cms/items/search` | GET |
+| Get content | `/connect/cms/contents/{id}` | GET |
+| Create content | `/connect/cms/contents` | POST |
+| Update content | `/connect/cms/contents/{id}` | PATCH |
+| Publish content | `/connect/cms/contents/{id}/publish` | POST |
+| Delete content | `/connect/cms/contents/{id}` | DELETE |
 
-**Example:**
+## Content Types (Marketing Cloud Workspace)
+
+| Type | API Name |
+|------|----------|
+| Email | `sfdc_cms__email` |
+| Email Template | `sfdc_cms__emailTemplate` |
+| Content Block | `sfdc_cms__emailFragment` |
+| Image | `sfdc_cms__image` |
+
+## Development
+
+### Verifying Server Restarts
+
+The server includes a version check tool:
 ```
-List the first 5 content items in CMS
-```
-
-### `get_cms_content`
-Get detailed information about specific content.
-
-**Parameters:**
-- `identifier` (string): Content ID or ContentKey
-
-**Example:**
-```
-Get the content with key MCWV26UCUUYNAFNP3Y53CVWGE23E
-```
-
-### `get_cms_types`
-List all available content types.
-
-**Example:**
-```
-What content types are available in CMS?
-```
-
-### `create_cms_content`
-Create new content in CMS.
-
-**Parameters:**
-- `type` (string): Content type
-- `title` (string): Content title
-- `urlName` (string): URL-friendly name
-- `contentKey` (string): Unique content key
-- `language` (string, optional): Language code (default: en_US)
-- `contentBody` (object, optional): Content body fields
-
-**Example:**
-```
-Create a new news article titled "Product Launch" with key "product-launch-2025"
+server_version
 ```
 
-### `update_cms_content`
-Update existing content body.
+Returns version number and build timestamp. Increment `SERVER_VERSION` in `index.js` when making changes.
 
-**Parameters:**
-- `contentId` (string): Content ID to update
-- `contentBody` (object): Updated content body
+### Important: No Console Logging
 
-**Example:**
-```
-Update content ID abc123 with a new description
-```
+MCP servers communicate via stdio JSON. Any `console.log` or `console.error` statements will corrupt the communication. Use the error response format instead.
 
-### `publish_cms_content`
-Publish content to make it live.
+## Documentation
 
-**Parameters:**
-- `contentId` (string): Content ID to publish
+- [Full API Reference](.docs/salesforce-cms-api-reference.md)
+- [Salesforce CMS Developer Guide](https://developer.salesforce.com/docs/platform/cms/guide/cms-developer-guide.html)
+- [Connect REST API - Enhanced CMS Resources](https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/connect_resources_managed_content_enhanced_resources.htm)
 
-**Example:**
-```
-Publish content ID abc123
-```
+## License
 
-### `delete_cms_content`
-Delete content from CMS.
+MIT
 
-**Parameters:**
-- `contentId` (string): Content ID to delete
+---
 
-**Example:**
-```
-Delete content ID abc123
-```
-
-## 🧪 Testing
-
-You can test the server directly:
-
-```bash
-# Run the server
-npm start
-
-# In another terminal, test with MCP inspector
-npx @modelcontextprotocol/inspector node src/index.js
-```
-
-## 📝 Usage Examples
-
-Once configured in Claude Desktop, you can use natural language:
-
-- "List the content in my CMS workspace"
-- "Get the content with key MCWV26UCUUYNAFNP3Y53CVWGE23E and show me its structure"
-- "What content types are available?"
-- "Create a test news article"
-- "Update that content with a new description"
-- "Publish the content"
-
-## 🔧 Troubleshooting
-
-### "Authentication failed"
-- Check your credentials in Claude Desktop config
-- Verify JWT certificate path is correct
-- Ensure Connected App has "Admin approved users are pre-authorized"
-
-### "Workspace not found"
-- Verify workspace name matches exactly (case-sensitive)
-- Check in Salesforce: Setup → CMS Workspaces
-
-### Server not appearing in Claude Desktop
-- Check config file syntax (valid JSON)
-- Verify file paths use double backslashes on Windows
-- Restart Claude Desktop after config changes
-- Check Claude Desktop logs for errors
-
-## 📚 Related Projects
-
-- **mce-to-cms-migration**: Main migration tool
-- **salesforce-mce-mcp-server**: MCP server for Marketing Cloud Engagement
-
-## 🎯 What's Next?
-
-Now you can:
-1. Inspect existing CMS content structure
-2. Test content creation directly through Claude
-3. Develop the migration tool interactively
-4. Debug issues in real-time
+*Built for use with Claude Desktop and other MCP-compatible LLM clients.*

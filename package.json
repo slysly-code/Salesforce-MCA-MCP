@@ -1,14 +1,14 @@
 {
   "name": "salesforce-cms-mcp-server",
-  "version": "1.0.0",
-  "description": "MCP server for Salesforce CMS operations",
+  "version": "2.0.0",
+  "description": "MCP server for Salesforce CMS operations with Complex Email Builder",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js"
   },
-  "keywords": ["mcp", "salesforce", "cms"],
+  "keywords": ["mcp", "salesforce", "cms", "email", "marketing"],
   "author": "",
   "license": "MIT",
   "dependencies": {
