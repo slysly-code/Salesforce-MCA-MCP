@@ -1,0 +1,213 @@
+{
+  "apiName": "MCVP2F2F25IBEOTLOXT5CHJPRIYU",
+  "contentBody": {
+    "inAppBlock": {
+      "attributes": {
+        "actionButtons": {
+          "attributes": {
+            "actions": [
+              {
+                "attributes": {
+                  "content": {
+                    "action": "1",
+                    "actionUrl": "https://www.handelsblatt.com/finanzen/maerkte/usa-und-iran-so-reagieren-oel-zinsen-aktien-und-gold-aufs-friedensabkommen/100233011.html",
+                    "id": "deec9f61-1b28-42f7-ab79-611767ede199",
+                    "label": "Jetzt weiterlesen",
+                    "passbackValue": "btn1"
+                  },
+                  "style": {
+                    "androidFont": "",
+                    "buttonColor": "#000000",
+                    "cornerRadius": "m",
+                    "fontSize": "s",
+                    "fontStyle": "regular",
+                    "iosFont": "",
+                    "textAlignment": "center",
+                    "textColor": "#FFFFFF"
+                  }
+                },
+                "definition": "sfdc_cms__inAppActionButton",
+                "id": "deec9f61-1b28-42f7-ab79-611767ede199",
+                "type": "block"
+              }
+            ],
+            "style": {
+              "buttonsLayout": "horizontal"
+            }
+          },
+          "definition": "sfdc_cms__inAppActionButtons",
+          "type": "block",
+          "id": "db1f8a7b-6af3-431c-821c-f79e161caa99"
+        },
+        "containerStyle": {
+          "attributes": {
+            "background": {
+              "color": "#FFFFFF",
+              "opacity": "100"
+            },
+            "cornerRadius": "m",
+            "dismissIcon": {
+              "backgroundColor": "#F3F3F3",
+              "iconColor": "#000000"
+            },
+            "messageOrientation": "imageTitleBody",
+            "overlay": {
+              "color": "#000000",
+              "opacity": "50"
+            }
+          },
+          "definition": "sfdc_cms__inAppContainerStyle",
+          "type": "block",
+          "id": "5970f7fb-94dc-48c4-88e6-f4116e76fede"
+        },
+        "media": {
+          "attributes": {
+            "content": {
+              "attributes": {
+                "link": {
+                  "source": {
+                    "ref": "https://images.handelsblatt.com/oInieItRuE5E/cover/1400/788/0/0/0/0/0.606/0.321/montage-oel-gold-so-reagieren-die-einzelnen-anlageklassen-auf-das-friedensabkommen.avif",
+                    "type": "url"
+                  },
+                  "url": "https://images.handelsblatt.com/oInieItRuE5E/cover/1400/788/0/0/0/0/0.606/0.321/montage-oel-gold-so-reagieren-die-einzelnen-anlageklassen-auf-das-friedensabkommen.avif"
+                },
+                "mediaType": "Image",
+                "type": "mediaUrl"
+              }
+            },
+            "style": {
+              "cornerRadius": "s",
+              "insetSize": "s",
+              "mediaSize": "e2e"
+            }
+          },
+          "definition": "sfdc_cms__inAppMedia",
+          "type": "block",
+          "id": "21a8d9aa-b4b5-4d62-9d4f-cbdc759cda2a"
+        },
+        "message": {
+          "attributes": {
+            "content": {
+              "message": "Im Nahen Osten steht ein Frieden unmittelbar bevor. Die Reaktionen an den Finanzmärkten zeigen: Konkret erwartet hatten die Anleger den Deal offensichtlich nicht."
+            },
+            "style": {
+              "androidFont": "",
+              "fontSize": "s",
+              "fontStyle": "regular",
+              "iosFont": "",
+              "textAlignment": "center",
+              "textColor": "#000000"
+            }
+          },
+          "definition": "sfdc_cms__inAppMessage",
+          "type": "block",
+          "id": "4c9ef998-6cab-47ac-86bb-a304af76aa0e"
+        },
+        "tertiaryMessage": {
+          "attributes": {
+            "content": {
+              "links": [
+                {
+                  "attributes": {
+                    "hyperLink": "https://www.handelsblatt.com",
+                    "hyperText": "privacy policy"
+                  },
+                  "definition": "sfdc_cms__inAppTertiaryLink",
+                  "type": "block",
+                  "id": "2ade1f1e-64ec-4587-8d74-f49bf9d989e5"
+                }
+              ],
+              "text": "By signing up, you agree to our &lt;&lt;privacy policy&gt;&gt;."
+            },
+            "style": {
+              "androidFont": "",
+              "fontSize": "xs",
+              "fontStyle": "regular",
+              "iosFont": "",
+              "linkColor": "#066AFE",
+              "textAlignment": "center",
+              "textColor": "#000000"
+            }
+          },
+          "definition": "sfdc_cms__inAppTertiaryMessage",
+          "type": "block",
+          "id": "bec34e5f-ca73-4d47-a340-d040bcd297b3"
+        },
+        "title": {
+          "attributes": {
+            "content": {
+              "title": "So reagieren Öl, Zinsen, Aktien und Gold aufs Friedensabkommen"
+            },
+            "style": {
+              "androidFont": "",
+              "fontSize": "l",
+              "fontStyle": "regular",
+              "iosFont": "",
+              "textAlignment": "center",
+              "textColor": "#000000"
+            }
+          },
+          "definition": "sfdc_cms__inAppTitle",
+          "type": "block",
+          "id": "27da65a8-3de9-4c27-98b5-1b9d3c6b97fb"
+        },
+        "type": "PushPrimer"
+      },
+      "definition": "sfdc_cms__inAppTypePushPrimer",
+      "type": "block",
+      "id": "00ffefd5-58f8-409d-bb36-f00372155f2e"
+    },
+    "inAppImageLayoutType": "16x9",
+    "inAppType": "PushPrimer",
+    "lightning:dataProviders": [
+      {
+        "attributes": {
+          "objectApiName": "UnifiedssotIndividualInd1__dlm"
+        },
+        "definition": "sfdc_cms__unifiedIndividualDataProvider",
+        "sfdcExpressionKey": "$unifiedIndividual"
+      }
+    ],
+    "sfdc_cms:title": "Iran",
+    "lightning:expressions": []
+  },
+  "contentFqn": "marketing--Default_Content_Workspace.sfdc_cms__inApp--MCVP2F2F25IBEOTLOXT5CHJPRIYU",
+  "contentKey": "MCVP2F2F25IBEOTLOXT5CHJPRIYU",
+  "contentSpace": {
+    "id": "0ZuKh000000ksIgKAI",
+    "resourceUrl": "/services/data/v64.0/connect/cms/spaces/0ZuKh000000ksIg"
+  },
+  "contentType": {
+    "fullyQualifiedName": "sfdc_cms__inApp",
+    "name": "In-App Message"
+  },
+  "createdBy": {
+    "id": "005Kh000003ePXnIAM",
+    "name": "Oliver Leister",
+    "resourceUrl": "/services/data/v64.0/chatter/users/005Kh000003ePXnIAM"
+  },
+  "createdDate": "2026-06-15T11:56:52.000Z",
+  "externalId": null,
+  "folder": {
+    "id": "9PuKh000000ggqeKAA",
+    "resourceUrl": "/services/data/v64.0/connect/cms/folders/9PuKh000000ggqeKAA"
+  },
+  "isPublished": false,
+  "language": "en_US",
+  "lastModifiedBy": {
+    "id": "005Kh000003ePXnIAM",
+    "name": "Oliver Leister",
+    "resourceUrl": "/services/data/v64.0/chatter/users/005Kh000003ePXnIAM"
+  },
+  "lastModifiedDate": "2026-06-15T11:58:11.000Z",
+  "managedContentId": "20YKh000001WUhaMAG",
+  "managedContentVariantId": "9PsKh000005nLvPKAU",
+  "managedContentVersionId": "5OUKh00000CNWvtOAH",
+  "status": {
+    "label": "Draft",
+    "status": "Draft"
+  },
+  "title": "Iran",
+  "urlName": "iran",
+  "versionNumber": "1.2"
+}

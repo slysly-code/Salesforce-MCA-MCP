@@ -6,6 +6,7 @@
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
+import { execFileSync } from 'child_process';
 
 export class SalesforceCMSClient {
   constructor(config) {
@@ -20,9 +21,93 @@ export class SalesforceCMSClient {
   }
 
   /**
-   * Authenticate using JWT Bearer Flow
+   * Authenticate. Routes to JWT or sf-CLI based on config.authMode.
    */
   async authenticate() {
+    if (this.config.authMode === 'sf-cli') {
+      return this._authenticateViaSfCli();
+    }
+    return this._authenticateViaJwt();
+  }
+
+  /**
+   * Reuse the access token from the local Salesforce CLI (`sf` / `sfdx`).
+   * Token is short-lived; tokenExpiry is conservative so we refresh often.
+   */
+  async _authenticateViaSfCli() {
+    const alias = this.config.sfCliAlias;
+    if (!alias) {
+      throw new Error('SF_CLI_ALIAS env var required when AUTH_MODE=sf-cli');
+    }
+    let raw;
+    try {
+      const isWin = process.platform === 'win32';
+      const cmd = isWin ? 'cmd.exe' : 'sf';
+      const args = isWin
+        ? ['/c', 'sf', 'org', 'display', '--target-org', alias, '--json']
+        : ['org', 'display', '--target-org', alias, '--json'];
+      raw = execFileSync(cmd, args, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        maxBuffer: 10 * 1024 * 1024,
+        env: { ...process.env, SF_TEMP_SHOW_SECRETS: 'true' }
+      });
+    } catch (e) {
+      const stdout = (e.stdout || '').toString();
+      if (stdout.trim().startsWith('{')) {
+        raw = stdout;
+      } else {
+        throw new Error(`sf CLI auth failed for alias "${alias}": ${e.message}`);
+      }
+    }
+    const parsed = JSON.parse(raw);
+    if (parsed.status !== 0 || !parsed.result?.instanceUrl) {
+      throw new Error(`sf CLI returned no instance URL for "${alias}": ${raw.slice(0, 300)}`);
+    }
+    this.instanceUrl = parsed.result.instanceUrl;
+    let token = parsed.result.accessToken;
+    if (!token || token.startsWith('[REDACTED]')) {
+      const tokArgs = isWin
+        ? ['/c', 'sf', 'org', 'auth', 'show-access-token', '--target-org', alias, '--no-prompt', '--json']
+        : ['org', 'auth', 'show-access-token', '--target-org', alias, '--no-prompt', '--json'];
+      const tokRaw = execFileSync(cmd, tokArgs, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        maxBuffer: 1024 * 1024,
+        env: { ...process.env, SF_TEMP_SHOW_SECRETS: 'true' }
+      });
+      const tokParsed = JSON.parse(tokRaw);
+      if (tokParsed.status !== 0 || !tokParsed.result?.accessToken) {
+        throw new Error(`sf CLI show-access-token returned no token for "${alias}": ${tokRaw.slice(0, 300)}`);
+      }
+      token = tokParsed.result.accessToken;
+    }
+    this.accessToken = token;
+    // sf CLI tokens last ~2h; refresh after 30min to be safe
+    this.tokenExpiry = Date.now() + (30 * 60 * 1000);
+
+    this.client = axios.create({
+      baseURL: `${this.instanceUrl}/services/data/${this.config.apiVersion}`,
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    this.toolingClient = axios.create({
+      baseURL: `${this.instanceUrl}/services/data/${this.config.apiVersion}/tooling`,
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!this.workspaceId) {
+      await this.getWorkspaceId();
+    }
+    return true;
+  }
+
+  async _authenticateViaJwt() {
     try {
       const privateKey = fs.readFileSync(this.config.jwtPrivateKeyPath, 'utf8');
       
@@ -77,7 +162,8 @@ export class SalesforceCMSClient {
       
       return true;
     } catch (error) {
-      throw new Error(`Authentication failed: ${error.message}`);
+      const detail = error.response?.data ? ` | ${JSON.stringify(error.response.data)}` : '';
+      throw new Error(`Authentication failed: ${error.message}${detail}`);
     }
   }
 
@@ -193,26 +279,33 @@ export class SalesforceCMSClient {
    */
   async createContent(contentData) {
     await this.ensureAuthenticated();
-    
-    // Build payload according to Salesforce CMS API spec
+
+    let contentBody = contentData.contentBody || {};
+
+    // Round-trip safety for InApp: getContent returns user-supplied text fields
+    // HTML-entity encoded (e.g. "&lt;&lt;privacy policy&gt;&gt;"). Salesforce
+    // re-escapes "&" on the way back in, so a naive clone double-encodes
+    // (→ "&amp;lt;…"). Decode entities in known text leaves before POST.
+    if (contentData.type === 'sfdc_cms__inApp') {
+      contentBody = decodeInAppTextEntities(contentBody);
+    }
+
     const payload = {
       contentSpaceOrFolderId: this.workspaceId,
       contentType: contentData.type,
-      contentBody: contentData.contentBody || {}
+      contentBody
     };
-    
-    // Add apiName (required for content identification)
+
     if (contentData.apiName || contentData.contentKey) {
       payload.apiName = contentData.apiName || contentData.contentKey;
     }
-    
-    // For email type, ensure sfdc_cms:title is in contentBody
-    if (contentData.type === 'sfdc_cms__email' && contentData.title) {
+
+    if ((contentData.type === 'sfdc_cms__email' || contentData.type === 'sfdc_cms__inApp') && contentData.title) {
       if (!payload.contentBody['sfdc_cms:title']) {
         payload.contentBody['sfdc_cms:title'] = contentData.title;
       }
     }
-    
+
     const createResponse = await this.client.post(
       `/connect/cms/contents`,
       payload
@@ -299,4 +392,33 @@ export class SalesforceCMSClient {
     await this.client.delete(`/connect/cms/contents/${contentId}`);
     return true;
   }
+}
+
+const HTML_ENTITY_MAP = { lt: '<', gt: '>', amp: '&', quot: '"', apos: "'", '#39': "'" };
+
+function decodeHtmlEntities(s) {
+  if (typeof s !== 'string' || s.indexOf('&') === -1) return s;
+  let prev;
+  let cur = s;
+  do {
+    prev = cur;
+    cur = cur.replace(/&(lt|gt|amp|quot|apos|#39);/g, (_, n) => HTML_ENTITY_MAP[n]);
+  } while (cur !== prev);
+  return cur;
+}
+
+const INAPP_TEXT_LEAF_KEYS = new Set([
+  'title', 'message', 'text', 'label', 'altText', 'hyperText', 'hyperLink', 'actionUrl'
+]);
+
+function decodeInAppTextEntities(node) {
+  if (Array.isArray(node)) return node.map(decodeInAppTextEntities);
+  if (node && typeof node === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(node)) {
+      out[k] = INAPP_TEXT_LEAF_KEYS.has(k) ? decodeHtmlEntities(v) : decodeInAppTextEntities(v);
+    }
+    return out;
+  }
+  return node;
 }
